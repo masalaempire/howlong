@@ -1,4 +1,4 @@
-name: Deploy HowLong to GitHub Pages
+name: Validate HowLong
 
 on:
   push:
@@ -9,15 +9,9 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
 
 jobs:
-  build:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,26 +24,9 @@ jobs:
         run: npm install
       - name: Validate question pool
         run: npm run validate:questions
-      - name: Build
-        run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+      - name: Typecheck
+        run: npm run typecheck
       - name: Test
         run: npm test -- --run
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-  deploy:
-    if: github.event_name != 'pull_request'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy Pages artifact
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Build
+        run: npm run build
