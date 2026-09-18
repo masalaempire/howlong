@@ -60,6 +60,8 @@ h2 { font-size: clamp(31px, 5vw, 46px); line-height: 1; }
 .home-meta { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; margin-top: 34px; color: var(--muted); }
 .home-meta span, .home-meta button { border: 1px solid var(--line); border-radius: 99px; padding: 8px 10px; background: transparent; color: var(--muted); font: 500 10px "DM Mono", monospace; letter-spacing: .05em; text-transform: uppercase; }
 .home-meta button { color: var(--ink); cursor: pointer; }
+.turnstile-wrap { margin-top: 18px; min-height: 65px; }
+.turnstile-wrap small { display: block; margin-top: 5px; color: #a53e2d; font-size: 11px; }
 
 .game-card, .result-card { margin: clamp(18px, 5vw, 70px) 0 50px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); padding: clamp(25px, 6vw, 70px); box-shadow: var(--shadow); }
 .game-topline { display: flex; justify-content: space-between; align-items: center; }
