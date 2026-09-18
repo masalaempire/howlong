@@ -16,11 +16,11 @@ Copy `.env.example` to `.env.local` and add the Supabase project URL and publish
 
 ## Supabase setup
 
-1. Create a Supabase project and enable anonymous sign-ins, manual linking, and email OTP.
+1. Create a Supabase project and enable anonymous sign-ins, manual linking, and email OTP. If you use Turnstile, configure its secret in Supabase Auth CAPTCHA settings as well.
 2. Apply `supabase/migrations/0001_howlong_v2.sql`.
 3. Run `npm run generate:seed`, then apply the generated `supabase/seed.sql` in the SQL editor.
 4. Deploy `supabase/functions/game-api` with the Supabase CLI. The function expects the platform-provided `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` secrets.
-5. Configure the deployed site URL and email redirect URL.
+5. Configure the deployed site URL and email redirect URL. The profile sheet supports both saving an anonymous guest identity and signing back in with an existing email code.
 
 The browser never receives answer durations before submission. Direct client writes to attempts and answers are revoked by RLS; the Edge Function owns scoring and leaderboard writes.
 
@@ -30,4 +30,4 @@ The browser never receives answer durations before submission. Direct client wri
 
 ## Deployment
 
-GitHub Pages is configured in `.github/workflows/deploy.yml`. Enable **GitHub Actions** as the Pages source and add the public `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, and optional Turnstile site key as repository variables.
+GitHub Pages is configured in `.github/workflows/deploy.yml`. Enable **GitHub Actions** as the Pages source and add the public `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, and optional `VITE_TURNSTILE_SITE_KEY` as repository variables. When a Turnstile site key is present, the home screen renders the security check before the first anonymous account is created.
