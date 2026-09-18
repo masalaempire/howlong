@@ -38,6 +38,7 @@ export default function App() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [emailDraft, setEmailDraft] = useState('');
+  const [emailCode, setEmailCode] = useState('');
   const [emailNotice, setEmailNotice] = useState('');
   const [resumeAvailable, setResumeAvailable] = useState(Boolean(loadSession()));
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -93,6 +94,11 @@ export default function App() {
         next = makeLocalSession(mode, mode === 'practice' ? selectedCategory || undefined : undefined);
         if (mode === 'daily') setScreenNotice('Online mode is not configured, so this Daily preview is unranked. Practice remains fully playable.');
       }
+      if (next.complete) {
+        setScreenNotice('You have already completed today\'s Daily Challenge. Come back after the UTC reset.');
+        setScreen('home');
+        return;
+      }
       setSession(next);
       persistSession(next);
       setGuess(emptyDuration());
@@ -119,7 +125,7 @@ export default function App() {
     const saved = loadSession();
     if (!saved) return;
     if (!saved.attemptId.startsWith('local-')) {
-      setScreenNotice('Your online game will resume when you choose the same mode.');
+      void startGame(saved.mode);
       return;
     }
     const source = makeLocalSession(saved.mode, undefined, saved.date);
@@ -290,7 +296,7 @@ export default function App() {
       <footer><span>Estimate first. Be surprised after.</span><button onClick={() => void openLeaderboard()}>View leaderboard</button><span>{stats.currentStreak > 0 ? `STREAK ${stats.currentStreak}` : 'START A STREAK'}</span></footer>
 
       {showLeaderboard && <LeaderboardModal entries={leaderboard} onClose={() => setShowLeaderboard(false)} date={utcDate()} />}
-      {showProfile && <ProfileModal profile={profile} stats={stats} email={emailDraft} setEmail={setEmailDraft} notice={emailNotice} onClose={() => setShowProfile(false)} onSave={storeProfile} onEmail={async () => { if (!onlineApi) { setEmailNotice('Email save becomes available after Supabase is connected.'); return; } try { await onlineApi.sendEmailCode(emailDraft); setEmailNotice('Check your inbox for the six-digit code.'); } catch (error) { setEmailNotice(error instanceof Error ? error.message : 'The email code could not be sent.'); } }} />}
+      {showProfile && <ProfileModal profile={profile} stats={stats} email={emailDraft} setEmail={setEmailDraft} code={emailCode} setCode={setEmailCode} notice={emailNotice} onClose={() => setShowProfile(false)} onSave={storeProfile} onEmail={async () => { if (!onlineApi) { setEmailNotice('Email save becomes available after Supabase is connected.'); return; } try { await onlineApi.sendEmailCode(emailDraft); setEmailNotice('Check your inbox for the six-digit code.'); } catch (error) { setEmailNotice(error instanceof Error ? error.message : 'The email code could not be sent.'); } }} onVerify={async () => { if (!onlineApi) { setEmailNotice('Email save becomes available after Supabase is connected.'); return; } try { await onlineApi.verifyEmailCode(emailDraft, emailCode); setEmailNotice('Profile saved. This guest identity can now be recovered with your email.'); } catch (error) { setEmailNotice(error instanceof Error ? error.message : 'That email code could not be verified.'); } }} />}
     </main>
   );
 }
@@ -326,7 +332,7 @@ function LeaderboardModal({ entries, date, onClose }: { entries: LeaderboardEntr
   return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}><section className="modal" role="dialog" aria-modal="true" aria-labelledby="leaderboard-title"><div className="modal-heading"><div><p className="eyebrow">{date}</p><h2 id="leaderboard-title">Daily leaderboard</h2></div><button className="close-button" onClick={onClose} aria-label="Close leaderboard">×</button></div>{entries === null ? <div className="empty-state"><strong>{onlineApi ? 'Loading the board…' : 'The board is waiting for its online service.'}</strong><p>Connect Supabase to publish and compare ranked Daily scores.</p></div> : entries.length === 0 ? <div className="empty-state"><strong>Be the first name on the board.</strong><p>Complete today’s Daily Challenge to claim the top line.</p></div> : <ol className="leaderboard-list">{entries.map((entry) => <li key={`${entry.rank}-${entry.discriminator}`}><span className="rank">{String(entry.rank).padStart(2, '0')}</span><span className="leader-name">{entry.displayName}<small>#{entry.discriminator}</small></span><span className="leader-pattern">{entry.resultPattern.join('')}</span><strong>{entry.score}</strong></li>)}</ol>}</section></div>;
 }
 
-function ProfileModal({ profile, stats, email, setEmail, notice, onClose, onSave, onEmail }: { profile: Profile; stats: Stats; email: string; setEmail: (value: string) => void; notice: string; onClose: () => void; onSave: (name: string) => Promise<boolean>; onEmail: () => Promise<void> }) {
+function ProfileModal({ profile, stats, email, setEmail, code, setCode, notice, onClose, onSave, onEmail, onVerify }: { profile: Profile; stats: Stats; email: string; setEmail: (value: string) => void; code: string; setCode: (value: string) => void; notice: string; onClose: () => void; onSave: (name: string) => Promise<boolean>; onEmail: () => Promise<void>; onVerify: () => Promise<void> }) {
   const [draft, setDraft] = useState(profile.displayName);
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}><section className="modal profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title"><div className="modal-heading"><div><p className="eyebrow">Your time sense</p><h2 id="profile-title">{draft}</h2></div><button className="close-button" onClick={onClose} aria-label="Close profile">×</button></div><div className="stat-grid"><div><strong>{stats.dailyPlayed}</strong><span>Daily played</span></div><div><strong>{stats.dailyAverage || '—'}</strong><span>Average score</span></div><div><strong>{stats.dailyBest || '—'}</strong><span>Best score</span></div><div><strong>{stats.longestStreak}</strong><span>Longest streak</span></div></div><label className="modal-label" htmlFor="profile-name">Display name</label><div className="profile-name-edit"><input id="profile-name" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={20} /><button className="secondary-button" onClick={() => void onSave(draft)}>Save</button></div><div className="email-save"><label className="modal-label" htmlFor="profile-email">Save this profile with email</label><div><input id="profile-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /><button className="start-button" onClick={() => void onEmail()}>Send code</button></div><small>Guest play stays instant. Email makes this profile recoverable on another device.</small></div>{notice && <p className="modal-notice" role="status">{notice}</p>}</section></div>;
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}><section className="modal profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title"><div className="modal-heading"><div><p className="eyebrow">Your time sense</p><h2 id="profile-title">{draft}</h2></div><button className="close-button" onClick={onClose} aria-label="Close profile">×</button></div><div className="stat-grid"><div><strong>{stats.dailyPlayed}</strong><span>Daily played</span></div><div><strong>{stats.dailyAverage || '—'}</strong><span>Average score</span></div><div><strong>{stats.dailyBest || '—'}</strong><span>Best score</span></div><div><strong>{stats.longestStreak}</strong><span>Longest streak</span></div></div><label className="modal-label" htmlFor="profile-name">Display name</label><div className="profile-name-edit"><input id="profile-name" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={20} /><button className="secondary-button" onClick={() => void onSave(draft)}>Save</button></div><div className="email-save"><label className="modal-label" htmlFor="profile-email">Save this profile with email</label><div><input id="profile-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /><button className="start-button" onClick={() => void onEmail()}>Send code</button></div><div className="code-row"><input aria-label="Six digit email code" inputMode="numeric" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6-digit code" /><button className="secondary-button" onClick={() => void onVerify()} disabled={code.length !== 6}>Verify</button></div><small>Guest play stays instant. Email makes this profile recoverable on another device.</small></div>{notice && <p className="modal-notice" role="status">{notice}</p>}</section></div>;
 }
