@@ -1,0 +1,6 @@
+[auth]
+enable_anonymous_sign_ins = true
+enable_manual_linking = true
+
+[functions.game-api]
+verify_jwt = true
