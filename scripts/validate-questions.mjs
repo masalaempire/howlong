@@ -16,6 +16,9 @@ for (const [index, question] of questions.entries()) {
   const min = question.acceptedMinSeconds ?? question.answerSeconds;
   const max = question.acceptedMaxSeconds ?? question.answerSeconds;
   if (min <= 0 || max < min) errors.push(`${label}: invalid accepted range`);
+  if (Math.round(question.answerSeconds * 1000) <= 0 || Math.round(min * 1000) <= 0 || Math.round(max * 1000) <= 0) errors.push(`${label}: durations must resolve to at least 1 millisecond`);
+  if (Math.round(max * 1000) > Math.round(9999 * 365.25 * 24 * 60 * 60 * 1000)) errors.push(`${label}: duration exceeds the 9,999-year cap`);
+  if (!/^https?:\/\//i.test(question.sourceUrl)) errors.push(`${label}: sourceUrl must use http or https`);
   try { new URL(question.sourceUrl); } catch { errors.push(`${label}: invalid sourceUrl`); }
   categories.set(question.category, (categories.get(question.category) ?? 0) + 1);
 }
