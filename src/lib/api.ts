@@ -60,6 +60,11 @@ export class GameApi {
     if (error) throw error;
   }
 
+  async verifyEmailCode(email: string, token: string): Promise<void> {
+    const { error } = await this.client.auth.verifyOtp({ email, token, type: 'email_change' });
+    if (error) throw error;
+  }
+
   getClient() { return this.client; }
 }
 
