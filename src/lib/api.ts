@@ -65,6 +65,19 @@ export class GameApi {
     if (error) throw error;
   }
 
+  async sendSignInCode(email: string): Promise<void> {
+    const { error } = await this.client.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}` },
+    });
+    if (error) throw error;
+  }
+
+  async verifySignInCode(email: string, token: string): Promise<void> {
+    const { error } = await this.client.auth.verifyOtp({ email, token, type: 'email' });
+    if (error) throw error;
+  }
+
   getClient() { return this.client; }
 }
 
