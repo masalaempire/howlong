@@ -10,6 +10,7 @@ export const backendConfigured = Boolean(supabaseUrl && supabaseKey);
 export class GameApi {
   private client: SupabaseClient;
   private baseUrl: string;
+  private captchaToken = '';
 
   constructor() {
     if (!backendConfigured) throw new Error('The online game service is not configured.');
@@ -20,9 +21,11 @@ export class GameApi {
   async ensureGuest(): Promise<void> {
     const { data } = await this.client.auth.getSession();
     if (!data.session) {
+      if (import.meta.env.VITE_TURNSTILE_SITE_KEY && !this.captchaToken) throw new Error('Complete the security check before playing online.');
       const profile = loadProfile();
-      const { error } = await this.client.auth.signInAnonymously({ options: { data: { display_name: profile.displayName } } });
+      const { error } = await this.client.auth.signInAnonymously({ options: { data: { display_name: profile.displayName }, captchaToken: this.captchaToken || undefined } });
       if (error) throw error;
+      this.captchaToken = '';
     }
   }
 
@@ -76,6 +79,10 @@ export class GameApi {
   async verifySignInCode(email: string, token: string): Promise<void> {
     const { error } = await this.client.auth.verifyOtp({ email, token, type: 'email' });
     if (error) throw error;
+  }
+
+  setCaptchaToken(token: string) {
+    this.captchaToken = token;
   }
 
   getClient() { return this.client; }
