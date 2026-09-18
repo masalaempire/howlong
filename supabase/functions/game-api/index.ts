@@ -35,7 +35,8 @@ const publicQuestion = (question: Question) => {
   return safe;
 };
 const todayUtc = () => new Date().toISOString().slice(0, 10);
-const safeNumber = (value: unknown) => typeof value === 'number' && Number.isSafeInteger(value) && value > 0 && value <= 315576000000000;
+const MAX_DURATION_MS = Math.round(9999 * 365.25 * 24 * 60 * 60 * 1000);
+const safeNumber = (value: unknown) => typeof value === 'number' && Number.isSafeInteger(value) && value > 0 && value <= MAX_DURATION_MS;
 
 function hash(value: string): number {
   let result = 2166136261;
