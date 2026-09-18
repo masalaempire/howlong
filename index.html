@@ -4,69 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f6f1e7" />
+    <meta name="description" content="HowLong — a game about guessing the duration of real things." />
     <title>How Long?</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="game-shell">
-      <section class="start-screen" id="startScreen">
-        <p class="eyebrow">A tiny game about time</p>
-        <h1>Some things take <em>much</em> longer than you think.</h1>
-        <p class="intro">Set your best estimate, then find out how your sense of time holds up.</p>
-        <div class="start-details"><span>10 questions</span><span>about 4 minutes</span><span>real things only</span></div>
-        <button class="start" id="start">Start playing <span>→</span></button>
-      </section>
-
-      <header class="hidden" id="gameHeader">
-        <a class="brand" href="#" aria-label="Start over">How Long<span>?</span></a>
-        <p class="round" id="roundLabel">01 <i></i> 10</p>
-      </header>
-
-      <section class="card hidden" aria-live="polite">
-        <p class="eyebrow" id="category">Architecture</p>
-        <h1 id="question">How long did it take to build the Empire State Building?</h1>
-        <p class="hint" id="hint">From the start of construction to opening day.</p>
-
-        <div class="picker-section" id="pickerSection">
-          <div class="scale-toggle" role="group" aria-label="Duration units">
-            <button class="scale active" data-scale="large">Large units</button>
-            <button class="scale" data-scale="small">Small units</button>
-          </div>
-
-          <p class="instruction">Scroll, drag, or use arrows to set your estimate.</p>
-          <div class="lock" id="lock" aria-label="Your duration estimate"></div>
-          <button class="submit" id="submit">Lock it in <span>→</span></button>
-        </div>
-
-        <section class="result hidden" id="result">
-          <div class="verdict" id="verdict"></div>
-          <div class="comparison">
-            <div><span>Your guess</span><strong id="guessText"></strong></div>
-            <div><span>Actually</span><strong id="actualText"></strong></div>
-          </div>
-          <p class="difference" id="difference"></p>
-          <div class="duration-bar" aria-label="Visual comparison of your estimate and the actual duration">
-            <div class="bar-key"><span><i class="actual-dot"></i>Actually</span><span><i class="guess-dot"></i>Your guess</span></div>
-            <div class="bar-track"><div class="actual-bar" id="actualBar"></div><div class="guess-bar" id="guessBar"></div></div>
-          </div>
-          <aside class="fact" id="fact"></aside>
-          <button class="next" id="next">Next question <span>→</span></button>
-        </section>
-      </section>
-
-      <section class="end-screen hidden" id="endScreen">
-        <p class="eyebrow">Game complete</p>
-        <h1>You have a feeling for <em>time.</em></h1>
-        <div class="final-score"><span>FINAL SCORE</span><strong id="finalScore">0000</strong><small>out of 10,000</small></div>
-        <p class="end-copy" id="endCopy"></p>
-        <button class="start" id="playAgain">Play again <span>↻</span></button>
-      </section>
-
-      <footer class="hidden" id="gameFooter"><span>Estimate first. Be surprised after.</span><span id="score">SCORE&nbsp; 0000</span></footer>
-    </main>
-    <script src="app.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
