@@ -133,6 +133,8 @@ footer button { border: 0; padding: 0; background: transparent; color: var(--ink
 .profile-name-edit, .email-save > div { display: flex; gap: 8px; }
 .profile-name-edit input, .email-save input { min-width: 0; flex: 1; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); padding: 11px; }
 .email-save { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 23px; }
+.code-row { display: flex; gap: 8px; margin-top: 8px; }
+.code-row input { min-width: 0; flex: 1; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); padding: 11px; letter-spacing: .2em; }
 .email-save small { display: block; margin-top: 9px; color: var(--muted); line-height: 1.5; }
 .modal-notice { color: #a53e2d; font-size: 12px; font-weight: 700; }
 
