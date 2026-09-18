@@ -81,5 +81,5 @@ export function answerLocal(session: GameSession, guessMs: number): AnswerResult
 }
 
 export function questionForSession(session: GameSession): PublicQuestion | undefined {
-  return session.questions[session.currentIndex];
+  return session.questions[session.currentIndex] ?? session.questions.at(-1);
 }
