@@ -6,6 +6,15 @@ type RawQuestion = (typeof rawQuestions)[number];
 const DEFAULT_SOURCE_DATE = '2026-09-18';
 const secondsToMs = (seconds: number) => Math.round(seconds * 1000);
 
+function sourceLabel(url: string): string {
+  try {
+    const page = decodeURIComponent(new URL(url).pathname.split('/').filter(Boolean).pop() ?? '').replaceAll('_', ' ');
+    return page ? `Wikipedia — ${page}` : 'Wikipedia reference';
+  } catch {
+    return 'Reference source';
+  }
+}
+
 export const QUESTIONS: Question[] = (rawQuestions as RawQuestion[]).map((item) => {
   const answerMs = secondsToMs(item.answerSeconds);
   return {
@@ -18,7 +27,7 @@ export const QUESTIONS: Question[] = (rawQuestions as RawQuestion[]).map((item) 
     acceptedMaxMs: secondsToMs(item.acceptedMaxSeconds ?? item.answerSeconds),
     displayAnswer: item.displayAnswer,
     fact: item.fact,
-    sourceLabel: 'Reference source',
+    sourceLabel: sourceLabel(item.sourceUrl),
     sourceUrl: item.sourceUrl,
     sourceAccessedAt: DEFAULT_SOURCE_DATE,
     difficulty: item.difficulty as 1 | 2 | 3,
