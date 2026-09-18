@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { categories } from './data/questions';
 import { answerLocal, makeLocalSession, questionForSession, utcDate } from './lib/gameEngine';
 import { onlineApi } from './lib/api';
@@ -303,20 +303,41 @@ export default function App() {
 
 function DurationComposer({ value, onChange, disabled }: { value: DurationParts; onChange: (value: DurationParts) => void; disabled: boolean }) {
   const [history, setHistory] = useState<DurationParts[]>([]);
+  const valueRef = useRef(value);
+  const holdRef = useRef<{ timeout?: number; interval?: number }>({});
+  useEffect(() => { valueRef.current = value; }, [value]);
+  useEffect(() => () => { if (holdRef.current.timeout) window.clearTimeout(holdRef.current.timeout); if (holdRef.current.interval) window.clearInterval(holdRef.current.interval); }, []);
   const update = (key: keyof DurationParts, raw: string, step = false) => {
-    const old = { ...value };
-    const nextValue = step ? Math.max(0, (value[key] || 0) + Number(raw)) : Math.max(0, Math.floor(Number(raw.replace(/\D/g, '')) || 0));
+    const current = valueRef.current;
+    const old = { ...current };
+    const nextValue = step ? Math.max(0, (current[key] || 0) + Number(raw)) : Math.max(0, Math.floor(Number(raw.replace(/\D/g, '')) || 0));
+    const next = { ...current, [key]: nextValue };
     setHistory((past) => [...past.slice(-9), old]);
-    onChange({ ...value, [key]: nextValue });
+    valueRef.current = next;
+    onChange(next);
   };
-  const undo = () => { const previous = history.at(-1); if (!previous) return; setHistory((past) => past.slice(0, -1)); onChange(previous); };
+  const beginHold = (key: keyof DurationParts, delta: number) => {
+    if (disabled) return;
+    if (holdRef.current.timeout) window.clearTimeout(holdRef.current.timeout);
+    if (holdRef.current.interval) window.clearInterval(holdRef.current.interval);
+    holdRef.current.timeout = window.setTimeout(() => {
+      update(key, String(delta), true);
+      holdRef.current.interval = window.setInterval(() => update(key, String(delta), true), 110);
+    }, 450);
+  };
+  const endHold = () => {
+    if (holdRef.current.timeout) window.clearTimeout(holdRef.current.timeout);
+    if (holdRef.current.interval) window.clearInterval(holdRef.current.interval);
+    holdRef.current = {};
+  };
+  const undo = () => { const previous = history.at(-1); if (!previous) return; setHistory((past) => past.slice(0, -1)); valueRef.current = previous; onChange(previous); };
   return <div className="composer" aria-label="Duration estimate">
     <div className="composer-fields">
       {([
         ['years', 'years'], ['days', 'days'], ['hours', 'hours'], ['minutes', 'minutes'], ['seconds', 'seconds'], ['milliseconds', 'ms'],
       ] as Array<[keyof DurationParts, string]>).map(([key, label]) => <div className="duration-field" key={key}>
         <label htmlFor={`duration-${key}`}>{label}</label>
-        <div className="field-control"><button type="button" onClick={() => update(key, '-1', true)} disabled={disabled} aria-label={`Decrease ${label}`}>−</button><input id={`duration-${key}`} type="number" min="0" inputMode="numeric" value={value[key] || ''} placeholder="0" onChange={(event) => update(key, event.target.value)} onKeyDown={(event) => { if (event.key === 'ArrowUp') update(key, '1', true); if (event.key === 'ArrowDown') update(key, '-1', true); }} onWheel={(event) => { if (document.activeElement === event.currentTarget) { event.preventDefault(); update(key, event.deltaY < 0 ? '1' : '-1', true); } }} disabled={disabled} /><button type="button" onClick={() => update(key, '1', true)} disabled={disabled} aria-label={`Increase ${label}`}>+</button></div>
+        <div className="field-control"><button type="button" onClick={() => update(key, '-1', true)} onPointerDown={() => beginHold(key, -1)} onPointerUp={endHold} onPointerCancel={endHold} onPointerLeave={endHold} disabled={disabled} aria-label={`Decrease ${label}`}>−</button><input id={`duration-${key}`} type="number" min="0" inputMode="numeric" value={value[key] || ''} placeholder="0" onChange={(event) => update(key, event.target.value)} onKeyDown={(event) => { if (event.key === 'ArrowUp') update(key, '1', true); if (event.key === 'ArrowDown') update(key, '-1', true); }} onWheel={(event) => { if (document.activeElement === event.currentTarget) { event.preventDefault(); update(key, event.deltaY < 0 ? '1' : '-1', true); } }} disabled={disabled} /><button type="button" onClick={() => update(key, '1', true)} onPointerDown={() => beginHold(key, 1)} onPointerUp={endHold} onPointerCancel={endHold} onPointerLeave={endHold} disabled={disabled} aria-label={`Increase ${label}`}>+</button></div>
       </div>)}
     </div>
     <div className="composer-bottom"><p>Your estimate: <strong>{formatDuration(durationToMs(value), 3)}</strong></p><button className="undo-button" onClick={undo} disabled={disabled || history.length === 0}>Undo last change</button></div>
@@ -334,5 +355,17 @@ function LeaderboardModal({ entries, date, onClose }: { entries: LeaderboardEntr
 
 function ProfileModal({ profile, stats, email, setEmail, code, setCode, notice, onClose, onSave, onEmail, onVerify }: { profile: Profile; stats: Stats; email: string; setEmail: (value: string) => void; code: string; setCode: (value: string) => void; notice: string; onClose: () => void; onSave: (name: string) => Promise<boolean>; onEmail: () => Promise<void>; onVerify: () => Promise<void> }) {
   const [draft, setDraft] = useState(profile.displayName);
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}><section className="modal profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title"><div className="modal-heading"><div><p className="eyebrow">Your time sense</p><h2 id="profile-title">{draft}</h2></div><button className="close-button" onClick={onClose} aria-label="Close profile">×</button></div><div className="stat-grid"><div><strong>{stats.dailyPlayed}</strong><span>Daily played</span></div><div><strong>{stats.dailyAverage || '—'}</strong><span>Average score</span></div><div><strong>{stats.dailyBest || '—'}</strong><span>Best score</span></div><div><strong>{stats.longestStreak}</strong><span>Longest streak</span></div></div><label className="modal-label" htmlFor="profile-name">Display name</label><div className="profile-name-edit"><input id="profile-name" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={20} /><button className="secondary-button" onClick={() => void onSave(draft)}>Save</button></div><div className="email-save"><label className="modal-label" htmlFor="profile-email">Save this profile with email</label><div><input id="profile-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /><button className="start-button" onClick={() => void onEmail()}>Send code</button></div><div className="code-row"><input aria-label="Six digit email code" inputMode="numeric" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6-digit code" /><button className="secondary-button" onClick={() => void onVerify()} disabled={code.length !== 6}>Verify</button></div><small>Guest play stays instant. Email makes this profile recoverable on another device.</small></div>{notice && <p className="modal-notice" role="status">{notice}</p>}</section></div>;
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}><section className="modal profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title"><div className="modal-heading"><div><p className="eyebrow">Your time sense</p><h2 id="profile-title">{draft}</h2></div><button className="close-button" onClick={onClose} aria-label="Close profile">×</button></div><div className="stat-grid"><div><strong>{stats.dailyPlayed}</strong><span>Daily played</span></div><div><strong>{stats.practicePlayed}</strong><span>Practice played</span></div><div><strong>{stats.dailyAverage || '—'}</strong><span>Average score</span></div><div><strong>{stats.dailyBest || '—'}</strong><span>Best score</span></div><div><strong>{stats.currentStreak}</strong><span>Current streak</span></div><div><strong>{stats.longestStreak}</strong><span>Longest streak</span></div></div><HistoryCalendar history={stats.dailyHistory} /><label className="modal-label" htmlFor="profile-name">Display name</label><div className="profile-name-edit"><input id="profile-name" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={20} /><button className="secondary-button" onClick={() => void onSave(draft)}>Save</button></div><div className="email-save"><label className="modal-label" htmlFor="profile-email">Save this profile with email</label><div><input id="profile-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /><button className="start-button" onClick={() => void onEmail()}>Send code</button></div><div className="code-row"><input aria-label="Six digit email code" inputMode="numeric" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6-digit code" /><button className="secondary-button" onClick={() => void onVerify()} disabled={code.length !== 6}>Verify</button></div><small>Guest play stays instant. Email makes this profile recoverable on another device.</small></div>{notice && <p className="modal-notice" role="status">{notice}</p>}</section></div>;
+}
+
+function HistoryCalendar({ history }: { history: Stats['dailyHistory'] }) {
+  const today = new Date();
+  const todayKey = utcDate(today);
+  const days = Array.from({ length: 28 }, (_, index) => {
+    const date = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - (27 - index)));
+    const key = utcDate(date);
+    const item = history[key];
+    return { key, item, missed: key < todayKey && !item };
+  });
+  return <section className="history-section" aria-labelledby="history-title"><div className="history-heading"><h3 id="history-title">Daily history</h3><span>Last 28 days</span></div><div className="history-grid">{days.map(({ key, item, missed }) => <span key={key} className={`history-day ${item ? item.score >= 5000 ? 'perfect' : 'complete' : missed ? 'missed' : ''}`} title={`${key}${item ? ` · ${item.score} points` : missed ? ' · missed' : ''}`} aria-label={`${key}${item ? `, ${item.score} points` : missed ? ', missed' : ', not played'}`} />)}</div><div className="history-legend"><span><i className="complete" />played</span><span><i className="perfect" />perfect</span><span><i className="missed" />missed</span></div></section>;
 }
