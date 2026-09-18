@@ -8,6 +8,14 @@ import { clearSession, loadProfile, loadSession, loadStats, recordCompletedDaily
 import type { AnswerResult, DurationParts, GameSession, LeaderboardEntry, Mode, Profile, PublicQuestion, Stats } from './types';
 import './styles.css';
 
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (element: HTMLElement, options: { sitekey: string; callback: (token: string) => void; 'expired-callback'?: () => void; 'error-callback'?: () => void }) => string;
+    };
+  }
+}
+
 type Screen = 'home' | 'game' | 'result' | 'complete';
 
 const isValidName = (name: string) => /^[\p{L}\p{N}][\p{L}\p{N} _-]{1,18}[\p{L}\p{N}]$/u.test(name.trim());
@@ -253,6 +261,7 @@ export default function App() {
               <button className="start-button" onClick={() => void startGame('practice')} disabled={busy}>Start practice <span>→</span></button>
             </div>
           </div>
+          {onlineApi && import.meta.env.VITE_TURNSTILE_SITE_KEY && <TurnstileWidget />}
           {resumeAvailable && <button className="resume-link" onClick={restoreSavedGame}>Resume unfinished game <span>↗</span></button>}
           <div className="home-meta"><span>100 questions</span><span>guest-friendly</span><span>real things only</span><button onClick={() => void openLeaderboard()}>Leaderboard</button></div>
         </section>
@@ -343,6 +352,34 @@ function DurationComposer({ value, onChange, disabled }: { value: DurationParts;
     </div>
     <div className="composer-bottom"><p>Your estimate: <strong>{formatDuration(durationToMs(value), 3)}</strong></p><button className="undo-button" onClick={undo} disabled={disabled || history.length === 0}>Undo last change</button></div>
   </div>;
+}
+
+function TurnstileWidget() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [notice, setNotice] = useState('');
+  useEffect(() => {
+    const sitekey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+    if (!sitekey || !onlineApi || !ref.current) return;
+    let cancelled = false;
+    let attempts = 0;
+    const render = () => {
+      if (cancelled || !ref.current) return;
+      if (window.turnstile) {
+        window.turnstile.render(ref.current, {
+          sitekey,
+          callback: (token) => onlineApi.setCaptchaToken(token),
+          'expired-callback': () => onlineApi.setCaptchaToken(''),
+          'error-callback': () => { onlineApi.setCaptchaToken(''); setNotice('Security check unavailable. Try refreshing.'); },
+        });
+      } else if (attempts < 20) {
+        attempts += 1;
+        window.setTimeout(render, 250);
+      } else setNotice('Security check unavailable.');
+    };
+    render();
+    return () => { cancelled = true; };
+  }, []);
+  return <div className="turnstile-wrap"><div ref={ref} aria-label="Security check" />{notice && <small>{notice}</small>}</div>;
 }
 
 function LogMeter({ guessMs, actualMs }: { guessMs: number; actualMs: number }) {
