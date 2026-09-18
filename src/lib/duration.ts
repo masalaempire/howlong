@@ -9,6 +9,10 @@ export const DURATION_UNITS: Array<{ key: keyof DurationParts; label: string; sh
   { key: 'milliseconds', label: 'milliseconds', short: 'ms', factor: 1 },
 ];
 
+// Keep client and server submissions inside a predictable, safe integer range.
+// This is just under 9,999 calendar years expressed with the game's 365.25-day year.
+export const MAX_DURATION_MS = Math.round(9999 * 365.25 * 24 * 60 * 60 * 1000);
+
 export const emptyDuration = (): DurationParts => ({
   years: 0,
   days: 0,
@@ -61,5 +65,5 @@ export function formatCompactDuration(ms: number): string {
 
 export function isValidDuration(parts: DurationParts): boolean {
   const total = durationToMs(parts);
-  return Number.isFinite(total) && total > 0 && Number.isSafeInteger(Math.round(total));
+  return Number.isFinite(total) && total > 0 && total <= MAX_DURATION_MS && Number.isSafeInteger(Math.round(total));
 }
