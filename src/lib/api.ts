@@ -69,10 +69,18 @@ export class GameApi {
   }
 
   async sendSignInCode(email: string): Promise<void> {
+    if (import.meta.env.VITE_TURNSTILE_SITE_KEY && !this.captchaToken) {
+      throw new Error('Complete the security check before requesting an email code.');
+    }
     const { error } = await this.client.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}` },
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
+        captchaToken: this.captchaToken || undefined,
+      },
     });
+    this.captchaToken = '';
     if (error) throw error;
   }
 
