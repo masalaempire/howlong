@@ -360,6 +360,7 @@ function TurnstileWidget() {
   useEffect(() => {
     const sitekey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
     if (!sitekey || !onlineApi || !ref.current) return;
+    const api = onlineApi;
     let cancelled = false;
     let attempts = 0;
     const render = () => {
@@ -367,9 +368,9 @@ function TurnstileWidget() {
       if (window.turnstile) {
         window.turnstile.render(ref.current, {
           sitekey,
-          callback: (token) => onlineApi.setCaptchaToken(token),
-          'expired-callback': () => onlineApi.setCaptchaToken(''),
-          'error-callback': () => { onlineApi.setCaptchaToken(''); setNotice('Security check unavailable. Try refreshing.'); },
+          callback: (token) => api.setCaptchaToken(token),
+          'expired-callback': () => api.setCaptchaToken(''),
+          'error-callback': () => { api.setCaptchaToken(''); setNotice('Security check unavailable. Try refreshing.'); },
         });
       } else if (attempts < 20) {
         attempts += 1;
