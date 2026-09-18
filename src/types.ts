@@ -55,6 +55,7 @@ export type GameSession = {
   currentIndex: number;
   totalScore: number;
   resultPattern: string[];
+  complete?: boolean;
 };
 
 export type Profile = {
